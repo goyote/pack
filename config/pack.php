@@ -20,7 +20,7 @@ return array(
 	'compression' => array(
 		'css' => array(
 			'java' => 'java',
-			'jar' => MODPATH.'pack/vendor/yuicompressor/build/yuicompressor-2.4.6.jar',
+			'jar' => MODPATH.'pack/vendor/yahoo/build/yuicompressor-2.4.6.jar',
 			'charset' => 'utf-8',
 			'line_break' => NULL,
 		),
