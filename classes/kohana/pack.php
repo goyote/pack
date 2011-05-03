@@ -14,7 +14,7 @@ class Kohana_Pack {
 	/**
 	 * @var  array  configuration settings
 	 */
-	protected static $config;
+	public static $config;
 
 	/**
 	 * @var  array  method mappings
@@ -65,7 +65,7 @@ class Kohana_Pack {
 	/**
 	 * Renders the asset paths found in the package into HTML elements.
 	 *
-	 * @uses    Pack::package
+	 * @uses    Pack::timestamp
 	 * @uses    Arr::path
 	 * @param   string
 	 * @param   array
@@ -83,60 +83,80 @@ class Kohana_Pack {
 		foreach ($packages as $package)
 		{
 			$assets = Pack::$config['enabled']
-				? array(Pack::$config['build_dir'][$language].$package.'.'.$language)
+				? array(Pack::$config['packages_dir'][$language].$package.'.'.$language)
 				: Arr::path(Pack::$config[$language], $package);
 
 			foreach ($assets as $asset)
 			{
 				$html .= call_user_func(
 					array('HTML', Pack::$methods[$language]),
-					Pack::package($language, $asset, $package)
+					$asset.'?'.Pack::timestamp(Pack::$config['root'].$asset)
 				)."\n";
 			}
 		}
 		
 		return $html;
 	}
-
+	
 	/**
-	 * Generates a full file path; builds the package is it's missing.
+	 * Gets the file modification time.
 	 *
-	 * @uses    Pack::package_outdated
-	 * @uses    Pack::build_package
-	 * @uses    Pack::timestamp
-	 * @param   string
-	 * @param   string
 	 * @param   string
 	 * @return  string
 	 */
-	protected static function package($language, $asset, $package)
+	protected static function timestamp($asset)
 	{
-		$file = Pack::$config['root'].$asset;
-
-		$temp = '';
-
-		if ( ! is_file($file) OR (Pack::$config['enabled'] AND Pack::package_outdated($language, $package, $file)))
+		if ( ! isset(Pack::$timestamps[$asset]))
 		{
-			$temp = Pack::build_package($language, $asset, $package);
+			// Cache the timestamp
+			Pack::$timestamps[$asset] = filemtime($asset);
 		}
+
+		return Pack::$timestamps[$asset];
+	}
+
+	/**
+	 * Builds the packages that are missing or outdated.
+	 *
+	 * @uses  Pack::package_outdated
+	 * @uses  Pack::build_package
+	 */
+	public static function package()
+	{
+		// Config shortcut
+		$config = Pack::$config;
 		
-		// Appending the timestamp forces the newest file to be used
-		return $temp.$asset.'?'.Pack::timestamp(Pack::$config['root'].$temp.$asset);
+		foreach(array('css', 'js') as $language)
+		{
+			$packages = $config[$language];
+
+			foreach ($packages as $package => $assets)
+			{
+				$file = $config['root'].$config['packages_dir'][$language].$package.'.'.$language;
+
+				if ( ! is_file($file) OR Pack::package_outdated($assets, $file))
+				{
+					// Save developer time by building only when necessary
+					Pack::build_package($language, $assets, $file);
+				}
+			}
+		}
 	}
 
 	/**
 	 * Determines if a package or asset is outdated.
 	 *
-	 * @param   string
+	 * @uses    Pack::find_file
+	 * @uses    Pack::timestamp
 	 * @param   array
+	 * @param   string	
 	 * @return  bool
 	 */
-	protected static function package_outdated($language, $package, $build_file)
+	protected static function package_outdated($assets, $build_file)
 	{
 		$outdated = FALSE;
 		$latest = 0;
 
-		$assets = Arr::path(Pack::$config[$language], $package);
 		foreach ($assets as $asset)
 		{
 			$file = Pack::find_file($asset);
@@ -150,11 +170,45 @@ class Kohana_Pack {
 
 		if ($latest > Pack::timestamp($build_file))
 		{
-			// Package is outdated
+			// At least one asset is newer, need to rebuild
 			$outdated = TRUE;
 		}
 		
 		return $outdated;
+	}
+
+	/**
+	 * Builds a package from a set fo files.
+	 * 
+	 * @uses    Pack::find_file
+	 * @uses    Pack::create_file
+	 * @uses    Pack::compress_css
+	 * @uses    Pack::compress_js
+	 * @param   string
+	 * @param   array
+	 * @param   string
+	 */
+	protected static function build_package($language, $assets, $build_file)
+	{
+		$data = '';
+		foreach ($assets as $asset)
+		{
+			$file = Pack::find_file($asset);
+
+			// Concatenated code === less HTTP requests
+			$data .= file_get_contents($file);
+		}
+
+		if ( ! is_file($build_file))
+		{
+			// Dev forgot to create build file, no worries :)
+			Pack::create_file($build_file);
+		}
+
+		file_put_contents($build_file, $data, LOCK_EX);
+
+		$method = 'compress_'.$language;
+		Pack::$method($build_file);
 	}
 
 	/**
@@ -210,94 +264,6 @@ class Kohana_Pack {
 
 		// Create a blank file
 		touch($file);
-	}
-
-	/**
-	 * Builds a package from a set fo files.
-	 * 
-	 * @uses    Arr::path
-	 * @uses    Pack::find_file
-	 * @uses    Pack::create_file
-	 * @uses    Pack::timestamp
-	 * @uses    Pack::compress_css
-	 * @uses    Pack::compress_js
-	 * @param   string
-	 * @param   string
-	 * @param   string
-	 * @param   array
-	 * @return  bool
-	 */
-	protected static function build_package($language, $asset, $package)
-	{
-		if (Pack::$config['enabled'])
-		{
-			$assets = Arr::path(Pack::$config[$language], $package);
-			$data = '';
-			foreach ($assets as $asset)
-			{
-				$file = Pack::find_file($asset);
-
-				// Concatenate all the code
-				$data .= file_get_contents($file);
-			}
-
-			$build_file = Pack::$config['root'].Pack::$config['build_dir'][$language].$package.'.'.$language;
-
-			if ( ! is_file($build_file))
-			{
-				// Dev forgot to create build file, no worries :)
-				Pack::create_file($build_file);
-			}
-
-			file_put_contents($build_file, $data, LOCK_EX);
-
-			$method = 'compress_'.$language;
-			Pack::$method($build_file);
-		}
-		else
-		{
-			$file = Pack::find_file($asset);
-
-			// Generate a temporary URL
-			$destination = Pack::$config['root'].Pack::$config['temp_dir'].$asset;
-
-			$new = FALSE;
-			if ( ! is_file($destination))
-			{
-				Pack::create_file($file);
-
-				// Force a copy operation
-				$new = TRUE;
-			}
-
-			if ($new OR (Pack::timestamp($file) > Pack::timestamp($destination)))
-			{
-				// Only copy the file if we need to
-				copy($file, $destination);
-			}
-
-			// Shitty hack for now
-			return Pack::$config['temp_dir'];
-		}
-
-		return '';
-	}
-
-	/**
-	 * Gets the file modification time.
-	 *
-	 * @param   string
-	 * @return  string
-	 */
-	protected static function timestamp($asset)
-	{
-		if ( ! isset(Pack::$timestamps[$asset]))
-		{
-			// Cache the timestamp
-			Pack::$timestamps[$asset] = filemtime($asset);
-		}
-
-		return Pack::$timestamps[$asset];
 	}
 
 	/**
