@@ -1,3 +1,6 @@
 [submodule "vendor/yahoo"]
 	path = vendor/yahoo
 	url = git://github.com/yui/yuicompressor.git
+[submodule "vendor/google"]
+	path = vendor/google
+	url = git://github.com/goyote/google-closure-compiler.git
