@@ -51,7 +51,7 @@ return array(
 		),
 		'js' => array(
 			'java' => 'java',
-			'jar' => MODPATH.'pack/vendor/google/compiler-20110405.jar',
+			'jar' => MODPATH.'pack/vendor/google/compiler-20110502.jar',
 			'compilation_level' => 'SIMPLE_OPTIMIZATIONS',
 		),
 	),
