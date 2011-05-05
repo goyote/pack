@@ -2,7 +2,7 @@
 /**
  * Pack configuration settings.
  *
- * @link  http://kowut.com/modules/pack#settings
+ * @link  http://kowut.com/en/modules/pack#settings
  */
 return array(
 	/**

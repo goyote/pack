@@ -1,19 +1,28 @@
 <?php defined('SYSPATH') or die('No direct script access.');
-
+/**
+ * Pack controller in charge of build operations.
+ *
+ * @package    Pack
+ * @category   Controller
+ * @author     Gregorio Ramirez <goyocode@gmail.com>
+ * @copyright  (c) 2011 Gregorio Ramirez
+ * @see        http://kowut.com/en/modules/pack
+ * @license    MIT
+ */
 class Controller_Pack extends Controller {
-	
+
+	/**
+	 * Builds the packages only if needed, throws a 404 in production.
+	 *
+	 * @throws  HTTP_Exception_404
+	 * @return  void
+	 */
 	public function action_index()
 	{
-		// Load the configuration settings
-		$config = Pack::$config = Kohana::config('pack');
-		
-		if ( ! $config['enabled'])
+		// Generate the packages
+		if ( ! Pack::package())
 		{
-			// Generate the packages
-			Pack::package();
-		}
-		else
-		{
+			// Packaging is disabled in production
 			throw new HTTP_Exception_404;
 		}
 	}

@@ -1,12 +1,12 @@
 <?php defined('SYSPATH') or die('No direct script access.');
 /**
- * Asset packaging for the Kohana framework.
+ * Asset packaging & management for the Kohana framework.
  *
  * @package    Pack
  * @category   Base
  * @author     Gregorio Ramirez <goyocode@gmail.com>
  * @copyright  (c) 2011 Gregorio Ramirez
- * @see        http://kowut.com/modules/pack
+ * @see        http://kowut.com/en/modules/pack
  * @license    MIT
  */
 class Kohana_Pack {
@@ -14,7 +14,7 @@ class Kohana_Pack {
 	/**
 	 * @var  array  configuration settings
 	 */
-	public static $config;
+	protected static $config;
 
 	/**
 	 * @var  array  method mappings
@@ -118,14 +118,21 @@ class Kohana_Pack {
 	/**
 	 * Builds the packages that are missing or outdated.
 	 *
-	 * @uses  Pack::package_outdated
-	 * @uses  Pack::build_package
+	 * @uses    Pack::package_outdated
+	 * @uses    Pack::build_package
+	 * @return  bool
 	 */
 	public static function package()
 	{
-		// Config shortcut
-		$config = Pack::$config;
-		
+		// Load the configuration settings once
+		$config = Pack::$config = Kohana::config('pack');
+
+		if ($config['enabled'])
+		{
+			// Disable packaging in production
+			return FALSE;
+		}
+
 		foreach(array('css', 'js') as $language)
 		{
 			$packages = $config[$language];
@@ -141,6 +148,9 @@ class Kohana_Pack {
 				}
 			}
 		}
+
+		// Packaging completed successfully
+		return TRUE;
 	}
 
 	/**
