@@ -171,7 +171,7 @@ class Kohana_Pack {
 
 		foreach ($assets as $asset)
 		{
-			// The file may be located anywhere on the RCFS
+			// The file may be located anywhere in the RCFS
 			$file = Pack::find_file($asset);
 
 			if (($timestamp = Pack::timestamp($file)) > $latest)
@@ -208,7 +208,7 @@ class Kohana_Pack {
 		{
 			$file = Pack::find_file($asset);
 
-			// Concatenated code === less HTTP requests
+			// Concatenate the code === less HTTP requests
 			$data .= file_get_contents($file);
 		}
 
