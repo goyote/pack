@@ -135,10 +135,12 @@ class Kohana_Pack {
 
 		foreach(array('css', 'js') as $language)
 		{
+			// Grab all the available packages for the specified language
 			$packages = $config[$language];
 
 			foreach ($packages as $package => $assets)
 			{
+				// Full URI to the build file
 				$file = $config['root'].$config['packages_dir'][$language].$package.'.'.$language;
 
 				if ( ! is_file($file) OR Pack::package_outdated($assets, $file))
@@ -169,6 +171,7 @@ class Kohana_Pack {
 
 		foreach ($assets as $asset)
 		{
+			// The file may be located anywhere on the RCFS
 			$file = Pack::find_file($asset);
 
 			if (($timestamp = Pack::timestamp($file)) > $latest)
